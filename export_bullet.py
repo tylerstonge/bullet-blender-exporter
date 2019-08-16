@@ -35,6 +35,11 @@ def save(context, path):
 			rigidBodyObject["name"] = obj.name
 			rigidBodyObject["location"] = location[0:3]
 			rigidBodyObject["quaternion"] = quaternion[0:4]
+			rigidBodyObject["scale"] = scale[0:3]
+			rigidBodyObject["dimensions"] = obj.dimensions[0:3]
+			box = []
+			for i in range(8): box.append(b[i][0:3])
+			rigidBodyObject["bbox"] = box
 			rigidBodyObject["static"] = obj.rigid_body.type == 'PASSIVE'
 			rigidBodyObject["kinematic"] = obj.rigid_body.kinematic
 			rigidBodyObject["mass"] = 0 if obj.rigid_body.type == 'PASSIVE' else obj.rigid_body.mass
