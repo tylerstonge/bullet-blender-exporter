@@ -47,27 +47,42 @@ class ExportBullet(bpy.types.Operator, ExportHelper):
 	bl_label = "Export Bullet"
 	bl_options = {'PRESET', 'UNDO'}
 
+	out_hulls = bpy.props.BoolProperty(name="Include Convex Hulls data", description="Export Convex Hulls shape points", default = True)
+	out_meshes = bpy.props.BoolProperty( name="Include Mesh Shapes data", description="Export Mesh Shape as Triaangle mesh (indices and vertices)", default = True)
+
 	filename_ext = ".json"
 	filter_glob = StringProperty(
 		default="*.json",
 		options={'HIDDEN'}
 		)
 
+
+
 	def execute(self, context):
 		from . import export_bullet
-		export_bullet.save(context, self.properties.filepath)
-		return {'FINISHED'}		
+		export_bullet.save(context, self.properties.filepath, self.out_hulls, self.out_meshes)
+		return {'FINISHED'}
+
+	def draw(self, context):
+		layout = self.layout
+		col = layout.column()
+		col.label(text="Options")
+		col.prop(self, "out_hulls")
+		col.prop(self, "out_meshes")
+        
+
 
 def menu_func_import(self, context):
-    self.layout.operator(ImportBullet.bl_idname, text="Bullet (.json)")
+	self.layout.operator(ImportBullet.bl_idname, text="Bullet (.json)")
 def menu_func_export(self, context):
-    self.layout.operator(ExportBullet.bl_idname, text="Bullet (.json)")
+	self.layout.operator(ExportBullet.bl_idname, text="Bullet (.json)")
 
 def register():
 	bpy.utils.register_class(ImportBullet)
 	bpy.utils.register_class(ExportBullet)
 	bpy.types.TOPBAR_MT_file_import.append(menu_func_import)
 	bpy.types.TOPBAR_MT_file_export.append(menu_func_export)
+
 
 def unregister():
 	bpy.types.TOPBAR_MT_file_import.remove(menu_func_import)
