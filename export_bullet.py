@@ -2,6 +2,7 @@ import os
 import json
 import mathutils
 import bpy
+import bmesh
 
 def getOffsetFromAToB(a, b):
 	ta, ra, sa = a.matrix_world.decompose()
@@ -24,6 +25,8 @@ def save(context, path):
 	jsonObject["gravity"] = scene.gravity[:]
 	jsonObject["rigid_bodys"] = []
 	jsonObject["constraints"] = []
+	jsonObject["convex_hulls"] = []
+	jsonObject["meshes"] = []
 
 	for obj in scene.objects:
 		
@@ -46,6 +49,8 @@ def save(context, path):
 			rigidBodyObject["friction"] = obj.rigid_body.friction
 			rigidBodyObject["restitution"] = obj.rigid_body.restitution
 			rigidBodyObject["collision_shape"] = obj.rigid_body.collision_shape
+			if obj.rigid_body.collision_shape == 'CONVEX_HULL': rigidBodyObject["hull_name"] = obj.data.name
+			if obj.rigid_body.collision_shape == 'MESH': rigidBodyObject["mesh_name"] = obj.data.name
 			rigidBodyObject["use_margin"] = obj.rigid_body.use_margin
 			rigidBodyObject["collision_margin"] = obj.rigid_body.collision_margin
 			group = 0
@@ -56,6 +61,47 @@ def save(context, path):
 			rigidBodyObject["mask"] = group
 			jsonObject["rigid_bodys"].append(rigidBodyObject)
 
+			# export convex hull
+			if obj.rigid_body.collision_shape == 'CONVEX_HULL':
+				save_hull = True
+				for i in jsonObject["convex_hulls"]:
+					if (i["hull_name"] == obj.data.name) : 
+						save_hull = False
+				if (save_hull == True) :
+					hullObject = {}
+					hullObject["hull_name"] = obj.data.name
+					hull = []
+					for i in range(len(obj.data.vertices)): hull.append(obj.data.vertices[i].co[0:3])
+					hullObject["hull_points"] = hull
+					jsonObject["convex_hulls"].append(hullObject)
+
+			# export triangle meshes
+			if obj.rigid_body.collision_shape == 'MESH':
+				save_mesh = True
+				for i in jsonObject["meshes"]:
+					if (i["mesh_name"] == obj.data.name) : 
+						save_mesh = False
+				if (save_mesh == True) :
+					meshObject = {}
+					meshObject["mesh_name"] = obj.data.name
+					mesh_verts = []
+					mesh_indices = []
+
+					bm = bmesh.new()
+					bm.from_mesh(obj.data)
+					bmesh.ops.triangulate(bm, faces=bm.faces)
+					bm.verts.ensure_lookup_table()
+					bm.faces.ensure_lookup_table()
+
+					for i in range(len(bm.verts)): mesh_verts.append(bm.verts[i].co[0:3])
+					meshObject["mesh_verts"] = mesh_verts
+					for f in range(len(bm.faces)):
+						for i in range(3) : mesh_indices.append(bm.faces[f].verts[i].index)
+
+					meshObject["mesh_indices"] = mesh_indices
+					jsonObject["meshes"].append(meshObject)
+					bm.free()
+					del bm
 
 		if obj.rigid_body_constraint is not None:
 			rigidBodyConstraintObject = {}
