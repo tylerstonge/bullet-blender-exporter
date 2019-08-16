@@ -18,7 +18,7 @@ def getOffsetFromAToB(a, b):
 	tOffset.z = tOffset.z / sa.z
 	return tOffset, rOffset
 
-def save(context, path):
+def save(context, path, out_hulls, out_meshes):
 	jsonObject = {}
 
 	scene = context.scene
@@ -62,7 +62,7 @@ def save(context, path):
 			jsonObject["rigid_bodys"].append(rigidBodyObject)
 
 			# export convex hull
-			if obj.rigid_body.collision_shape == 'CONVEX_HULL':
+			if out_hulls == True and obj.rigid_body.collision_shape == 'CONVEX_HULL':
 				save_hull = True
 				for i in jsonObject["convex_hulls"]:
 					if (i["hull_name"] == obj.data.name) : 
@@ -76,7 +76,7 @@ def save(context, path):
 					jsonObject["convex_hulls"].append(hullObject)
 
 			# export triangle meshes
-			if obj.rigid_body.collision_shape == 'MESH':
+			if out_meshes == True and obj.rigid_body.collision_shape == 'MESH':
 				save_mesh = True
 				for i in jsonObject["meshes"]:
 					if (i["mesh_name"] == obj.data.name) : 
