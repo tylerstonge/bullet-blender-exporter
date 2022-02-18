@@ -4,6 +4,16 @@ import mathutils
 import bpy
 import bmesh
 
+bl_info = {
+	"name": "Bullet",
+	"description": "Exports bullet physics file.",
+	"author": "xu-xionglong, biller23",
+	"blender": (2, 80, 0),
+	"location": "File > Export > Bullet",
+	"category": "Import-Export",
+}
+
+
 def getOffsetFromAToB(a, b):
 	ta, ra, sa = a.matrix_world.decompose()
 	tb, rb, sb = b.matrix_world.decompose()
@@ -29,8 +39,6 @@ def save(context, path, out_hulls, out_meshes):
 	jsonObject["meshes"] = []
 
 	for obj in scene.objects:
-		
-
 		if obj.rigid_body is not None:
 			transform = obj.matrix_world
 			location, quaternion, scale = transform.decompose()
@@ -62,7 +70,7 @@ def save(context, path, out_hulls, out_meshes):
 			if out_hulls == True and obj.rigid_body.collision_shape == 'CONVEX_HULL':
 				save_hull = True
 				for i in jsonObject["convex_hulls"]:
-					if (i["hull_name"] == obj.data.name) : 
+					if (i["hull_name"] == obj.data.name) :
 						save_hull = False
 				if (save_hull == True) :
 					hullObject = {}
@@ -76,7 +84,7 @@ def save(context, path, out_hulls, out_meshes):
 			if out_meshes == True and obj.rigid_body.collision_shape == 'MESH':
 				save_mesh = True
 				for i in jsonObject["meshes"]:
-					if (i["mesh_name"] == obj.data.name) : 
+					if (i["mesh_name"] == obj.data.name) :
 						save_mesh = False
 				if (save_mesh == True) :
 					meshObject = {}
@@ -124,7 +132,7 @@ def save(context, path, out_hulls, out_meshes):
 				tOffset, rOffset = getOffsetFromAToB(object2, obj)
 				rigidBodyConstraintObject["translation_offset_b"] = tOffset[0:3]
 				rigidBodyConstraintObject["rotation_offset_b"] = rOffset[0:4]
-			
+
 			if constraintType == 'HINGE':
 				rigidBodyConstraintObject["use_limit_ang_z"] = obj.rigid_body_constraint.use_limit_ang_z
 				rigidBodyConstraintObject["limit_ang_z_lower"] = obj.rigid_body_constraint.limit_ang_z_lower
@@ -178,11 +186,57 @@ def save(context, path, out_hulls, out_meshes):
 					rigidBodyConstraintObject["use_spring_ang_z"] = obj.rigid_body_constraint.use_spring_ang_z
 					rigidBodyConstraintObject["spring_stiffness_ang_z"] = obj.rigid_body_constraint.spring_stiffness_ang_z
 					rigidBodyConstraintObject["spring_damping_ang_z"] = obj.rigid_body_constraint.spring_damping_ang_z
-					
+
 			jsonObject["constraints"].append(rigidBodyConstraintObject)
 
 	jsonText = json.dumps(jsonObject)
 	f = open(path, 'w')
 	f.write(jsonText)
 	f.close()
-	
+	return {'FINISHED'}
+
+from bpy_extras.io_utils import ExportHelper
+from bpy.props import StringProperty, BoolProperty, EnumProperty
+from bpy.types import Operator
+
+class Bullet(Operator, ExportHelper):
+	bl_idname = "bullet.scene_text"
+	bl_label = "Export Bullet data"
+
+	filename_ext = ".bullet"
+
+	filter_glob: StringProperty(
+		default=".bullet",
+		options={'HIDDEN'},
+		maxlen=255
+	)
+
+	out_hulls: BoolProperty(
+		name="Output Hulls",
+		default=False,
+	)
+
+	out_meshes: BoolProperty(
+		name="Output Meshes",
+		default=False
+	)
+
+	def execute(self, context):
+		return save(context, self.filepath, self.out_hulls, self.out_meshes)
+
+
+
+def menu_func_export(self, context):
+    self.layout.operator(Bullet.bl_idname, text="Bullet")
+
+def register():
+    bpy.utils.register_class(Bullet)
+    bpy.types.TOPBAR_MT_file_export.append(menu_func_export)
+
+
+def unregister():
+    bpy.utils.unregister_class(Bullet)
+    bpy.types.TOPBAR_MT_file_export.remove(menu_func_export)
+
+if __name__ == "__main__":
+    register()
